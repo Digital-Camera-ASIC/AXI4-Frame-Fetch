@@ -94,7 +94,7 @@ module cell_buffer
                     always @(*) begin
                         l_opxl_d[cell_idx][crow_idx] = l_opxl[cell_idx][crow_idx];
                         if(pgroup_wr_en_i) begin
-                            if(((cell_idx<<2) - 1) == (bcol_addr_i>>1)) begin
+                            if(((cell_idx>>2) - 1) == (bcol_addr_i>>1)) begin
                                 l_opxl_d[cell_idx][crow_idx] = pgroup_i[((31+1)*PIXEL_WIDTH)-1:31*PIXEL_WIDTH];
                             end
                         end
@@ -144,7 +144,7 @@ module cell_buffer
                             l_opxl_d[cell_idx][crow_idx] = l_opxl[cell_idx][crow_idx];
                             if(pgroup_wr_en_i) begin
                                 if(row_addr_i == {ROW_ADDR_W{1'b0}}) begin
-                                    if(((cell_idx<<2) - 1) == bcol_addr_i>>1) begin
+                                    if(((cell_idx>>2) - 1) == bcol_addr_i>>1) begin
                                         l_opxl_d[cell_idx][0] = pgroup_i[((31+1)*PIXEL_WIDTH)-1:31*PIXEL_WIDTH];
                                     end
                                 end
@@ -221,18 +221,6 @@ module cell_buffer
                     always @(*) begin
                         r_opxl_d[cell_idx][crow_idx] = r_opxl[cell_idx][crow_idx];
                         if(pgroup_wr_en_i) begin
-                            if(((cell_idx<<2) + 1) == (bcol_addr_i>>1)) begin
-                                if(crow_idx == crow_addr_i) begin
-                                    r_opxl_d[cell_idx][crow_idx] = pgroup_i[((0+1)*PIXEL_WIDTH)-1:0*PIXEL_WIDTH];
-                                end
-                            end
-                        end
-                    end
-                end
-                else if(cell_idx % 4 == 1) begin
-                    always @(*) begin
-                        r_opxl_d[cell_idx][crow_idx] = r_opxl[cell_idx][crow_idx];
-                        if(pgroup_wr_en_i) begin
                             if((cell_idx>>2) == (bcol_addr_i>>1)) begin
                                 if(crow_idx == crow_addr_i) begin
                                     r_opxl_d[cell_idx][crow_idx] = pgroup_i[((8+1)*PIXEL_WIDTH)-1:8*PIXEL_WIDTH];
@@ -241,7 +229,7 @@ module cell_buffer
                         end
                     end
                 end
-                else if(cell_idx % 4 == 2) begin
+                else if(cell_idx % 4 == 1) begin
                     always @(*) begin
                         r_opxl_d[cell_idx][crow_idx] = r_opxl[cell_idx][crow_idx];
                         if(pgroup_wr_en_i) begin
@@ -253,7 +241,7 @@ module cell_buffer
                         end
                     end
                 end
-                else if(cell_idx % 4 == 3) begin
+                else if(cell_idx % 4 == 2) begin
                     always @(*) begin
                         r_opxl_d[cell_idx][crow_idx] = r_opxl[cell_idx][crow_idx];
                         if(pgroup_wr_en_i) begin
@@ -265,14 +253,26 @@ module cell_buffer
                         end
                     end
                 end
+                else if(cell_idx % 4 == 3) begin
+                    always @(*) begin
+                        r_opxl_d[cell_idx][crow_idx] = r_opxl[cell_idx][crow_idx];
+                        if(pgroup_wr_en_i) begin
+                            if((cell_idx>>2) + 1 == (bcol_addr_i>>1)) begin
+                                if(crow_idx == crow_addr_i) begin
+                                    r_opxl_d[cell_idx][crow_idx] = pgroup_i[((0+1)*PIXEL_WIDTH)-1:0*PIXEL_WIDTH];
+                                end
+                            end
+                        end
+                    end
+                end
             end
             else begin // crow_addr == 0
                 if(cell_idx % 4 == 0) begin
                     always @(*) begin
                         r_opxl_d[cell_idx][crow_idx] = r_opxl[cell_idx][crow_idx];
                         if(pgroup_wr_en_i) begin
-                            if((cell_idx<<2) + 1 == (bcol_addr_i>>1)) begin
-                                r_opxl_d[cell_idx][crow_idx] = pgroup_i[((0+1)*PIXEL_WIDTH)-1:0*PIXEL_WIDTH];
+                            if((cell_idx>>2) == (bcol_addr_i>>1)) begin
+                                r_opxl_d[cell_idx][crow_idx] = pgroup_i[((8+1)*PIXEL_WIDTH)-1:8*PIXEL_WIDTH];
                             end
                         end
                     end
@@ -283,7 +283,7 @@ module cell_buffer
                         if(pgroup_wr_en_i) begin
                             if(row_addr_i == 0) begin
                                 if((cell_idx>>2) == (bcol_addr_i>>1)) begin
-                                    r_opxl_d[cell_idx][crow_idx] = pgroup_i[((8+1)*PIXEL_WIDTH)-1:8*PIXEL_WIDTH];
+                                    r_opxl_d[cell_idx][crow_idx] = pgroup_i[((16+1)*PIXEL_WIDTH)-1:16*PIXEL_WIDTH];
                                 end
                             end
                             else if(cell_store_i) begin
@@ -300,7 +300,7 @@ module cell_buffer
                         if(pgroup_wr_en_i) begin
                             if(row_addr_i == 0) begin
                                 if((cell_idx>>2) == (bcol_addr_i>>1)) begin
-                                    r_opxl_d[cell_idx][crow_idx] = pgroup_i[((16+1)*PIXEL_WIDTH)-1:16*PIXEL_WIDTH];
+                                    r_opxl_d[cell_idx][crow_idx] = pgroup_i[((24+1)*PIXEL_WIDTH)-1:24*PIXEL_WIDTH];
                                 end
                             end
                             else if(cell_store_i) begin
@@ -317,8 +317,8 @@ module cell_buffer
                             r_opxl_d[cell_idx][crow_idx] = r_opxl[cell_idx][crow_idx];
                             if(pgroup_wr_en_i) begin
                                 if(row_addr_i == 0) begin
-                                    if((cell_idx>>2) == (bcol_addr_i>>1)) begin
-                                        r_opxl_d[cell_idx][crow_idx] = pgroup_i[((24+1)*PIXEL_WIDTH)-1:24*PIXEL_WIDTH];
+                                    if((cell_idx>>2) + 1 == (bcol_addr_i>>1)) begin
+                                        r_opxl_d[cell_idx][crow_idx] = pgroup_i[((0+1)*PIXEL_WIDTH)-1:0*PIXEL_WIDTH];
                                     end
                                 end
                             end
@@ -330,7 +330,7 @@ module cell_buffer
                             if(pgroup_wr_en_i) begin
                                 if(row_addr_i == 0) begin
                                     if((cell_idx>>2) == (bcol_addr_i>>1)) begin
-                                        r_opxl_d[cell_idx][crow_idx] = pgroup_i[((24+1)*PIXEL_WIDTH)-1:24*PIXEL_WIDTH];
+                                        r_opxl_d[cell_idx][crow_idx] = pgroup_i[((0+1)*PIXEL_WIDTH)-1:0*PIXEL_WIDTH];
                                     end
                                 end
                                 else if(cell_store_i) begin
