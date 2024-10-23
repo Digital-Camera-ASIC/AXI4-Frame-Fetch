@@ -15,20 +15,26 @@ module cell_cache
     input   [CELL_ADDR_W-1:0]       cell_wr_addr_i,
     // -- To Cell Fetch
     input   [CELL_ADDR_W-1:0]       cell_rd_addr_i,
+    input                           cell_rd_en_i,
     // Output declaration
     // -- To Cell Fetch 
     output  [CELL_WIDTH-1:0]        cell_rd_data_o
 );
     // Internal signal
     reg [CELL_WIDTH-1:0]    cell_mem    [0:CELL_NUM-1];
-    
+    reg [CELL_WIDTH-1:0]    cell_q1;            
     // Combination logic
-    assign cell_rd_data_o = cell_mem[cell_rd_addr_i];
+    assign cell_rd_data_o = cell_q1;
     
     // RAM (Too big to use flip-flops -> Please infer BRAM or other RAM technology)
     always @(posedge clk) begin
         if(cell_wr_en_i) begin
             cell_mem[cell_wr_addr_i] <= cell_wr_data_i;
+        end
+    end
+    always @(posedge clk) begin
+        if(cell_rd_en_i) begin
+            cell_q1 <= cell_mem[cell_rd_addr_i];
         end
     end
     

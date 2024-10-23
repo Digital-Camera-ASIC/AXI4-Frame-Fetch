@@ -79,6 +79,7 @@ module axi4_frame_fetch
     wire                        cc_cell_fetch_start     [0:IP_AMT-1];
     wire    [CELL_WIDTH-1:0]    cb_cell_data            [0:IP_AMT-1];
     wire    [CELL_WIDTH-1:0]    ccache_cell_rd_data     [0:IP_AMT-1];
+    wire                        cf_cell_rd_en           [0:IP_AMT-1];
     wire    [CELL_ADDR_W-1:0]   cf_cell_rd_addr         [0:IP_AMT-1];
     // Internal module 
     // -- AXI4 Controller
@@ -148,6 +149,7 @@ module axi4_frame_fetch
             .cell_wr_en_i       (cc_cell_wr_en[ip_idx]),
             .cell_wr_data_i     (cb_cell_data[ip_idx]),
             .cell_wr_addr_i     (cc_cell_wr_addr[ip_idx]),
+            .cell_rd_en_i       (cf_cell_rd_en[ip_idx]),
             .cell_rd_addr_i     (cf_cell_rd_addr[ip_idx]),
             .cell_rd_data_o     (ccache_cell_rd_data[ip_idx])
         );
@@ -160,6 +162,7 @@ module axi4_frame_fetch
             .bwd_cell_data_i    (ccache_cell_rd_data[ip_idx]),
             .cell_fetch_start_i (cc_cell_fetch_start[ip_idx]),
             .fwd_cell_ready_i   (cell_ready_i[ip_idx]),
+            .bwd_cell_en_o      (cf_cell_rd_en[ip_idx]),
             .bwd_cell_addr_o    (cf_cell_rd_addr[ip_idx]),
             .fwd_cell_data_o    (cell_data_o[(ip_idx+1)*CELL_WIDTH-1-:CELL_WIDTH]),
             .fwd_cell_valid_o   (cell_valid_o[ip_idx])
