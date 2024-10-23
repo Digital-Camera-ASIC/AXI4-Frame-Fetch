@@ -45,22 +45,22 @@ module cell_buffer
     genvar bit_idx;
     // Internal signal
     // -- wire
-    reg     [PIXEL_WIDTH-1:0]   ipxl_d      [0:FRAME_COL_CNUM-1][0:CELL_ROW_PNUM][0:CELL_COL_PNUM];
-    reg     [PIXEL_WIDTH-1:0]   l_opxl_d    [0:FRAME_COL_CNUM-1][0:CELL_ROW_PNUM];
-    reg     [PIXEL_WIDTH-1:0]   r_opxl_d    [0:FRAME_COL_CNUM-1][0:CELL_ROW_PNUM];
-    reg     [PIXEL_WIDTH-1:0]   t_opxl_d    [0:FRAME_COL_CNUM-1][0:CELL_COL_PNUM];
-    reg     [PIXEL_WIDTH-1:0]   b_opxl_d    [0:FRAME_COL_CNUM-1][0:CELL_COL_PNUM];
+    reg     [PIXEL_WIDTH-1:0]   ipxl_d      [0:FRAME_COL_CNUM-1][0:CELL_ROW_PNUM-1][0:CELL_COL_PNUM-1];
+    reg     [PIXEL_WIDTH-1:0]   l_opxl_d    [0:FRAME_COL_CNUM-1][0:CELL_ROW_PNUM-1];
+    reg     [PIXEL_WIDTH-1:0]   r_opxl_d    [0:FRAME_COL_CNUM-1][0:CELL_ROW_PNUM-1];
+    reg     [PIXEL_WIDTH-1:0]   t_opxl_d    [0:FRAME_COL_CNUM-1][0:CELL_COL_PNUM-1];
+    reg     [PIXEL_WIDTH-1:0]   b_opxl_d    [0:FRAME_COL_CNUM-1][0:CELL_COL_PNUM-1];
     wire    [IPXL_SIZE-1:0]     ipxl_flat   [0:FRAME_COL_CNUM-1];
     wire    [LOPXL_SIZE-1:0]    l_opxl_flat [0:FRAME_COL_CNUM-1];
     wire    [ROPXL_SIZE-1:0]    r_opxl_flat [0:FRAME_COL_CNUM-1];
     wire    [TOPXL_SIZE-1:0]    t_opxl_flat [0:FRAME_COL_CNUM-1];
     wire    [BOPXL_SIZE-1:0]    b_opxl_flat [0:FRAME_COL_CNUM-1];
     // -- reg 
-    reg     [PIXEL_WIDTH-1:0]   ipxl        [0:FRAME_COL_CNUM-1][0:CELL_ROW_PNUM][0:CELL_COL_PNUM];
-    reg     [PIXEL_WIDTH-1:0]   l_opxl      [0:FRAME_COL_CNUM-1][0:CELL_ROW_PNUM];
-    reg     [PIXEL_WIDTH-1:0]   r_opxl      [0:FRAME_COL_CNUM-1][0:CELL_ROW_PNUM];
-    reg     [PIXEL_WIDTH-1:0]   t_opxl      [0:FRAME_COL_CNUM-1][0:CELL_COL_PNUM];
-    reg     [PIXEL_WIDTH-1:0]   b_opxl      [0:FRAME_COL_CNUM-1][0:CELL_COL_PNUM];
+    reg     [PIXEL_WIDTH-1:0]   ipxl        [0:FRAME_COL_CNUM-1][0:CELL_ROW_PNUM-1][0:CELL_COL_PNUM-1];
+    reg     [PIXEL_WIDTH-1:0]   l_opxl      [0:FRAME_COL_CNUM-1][0:CELL_ROW_PNUM-1];
+    reg     [PIXEL_WIDTH-1:0]   r_opxl      [0:FRAME_COL_CNUM-1][0:CELL_ROW_PNUM-1];
+    reg     [PIXEL_WIDTH-1:0]   t_opxl      [0:FRAME_COL_CNUM-1][0:CELL_COL_PNUM-1];
+    reg     [PIXEL_WIDTH-1:0]   b_opxl      [0:FRAME_COL_CNUM-1][0:CELL_COL_PNUM-1];
     
     // Combination logic
     assign cell_data_o = {ipxl_flat[ccell_addr_i], t_opxl_flat[ccell_addr_i], l_opxl_flat[ccell_addr_i], r_opxl_flat[ccell_addr_i], b_opxl_flat[ccell_addr_i]};
@@ -266,7 +266,7 @@ module cell_buffer
                     end
                 end
             end
-            else begin
+            else begin // crow_addr == 0
                 if(cell_idx % 4 == 0) begin
                     always @(*) begin
                         r_opxl_d[cell_idx][crow_idx] = r_opxl[cell_idx][crow_idx];
@@ -354,7 +354,7 @@ module cell_buffer
                 b_opxl_d[cell_idx][ccol_idx] = b_opxl[cell_idx][ccol_idx];
                 if((cell_idx>>2) == (bcol_addr_i>>1)) begin
                     if(crow_addr_i == 0) begin
-                        b_opxl_d[cell_idx][ccol_idx] = pgroup_i[(ccol_idx+1)*PIXEL_WIDTH-1:ccol_idx*PIXEL_WIDTH];
+                        b_opxl_d[cell_idx][ccol_idx] = pgroup_i[(cell_idx%4)*CELL_COL_PNUM*PIXEL_WIDTH + (ccol_idx+1)*PIXEL_WIDTH-1-:PIXEL_WIDTH];
                     end
                 end
             end
@@ -386,7 +386,7 @@ module cell_buffer
                         ipxl_d[cell_idx][crow_idx][ccol_idx] = ipxl[cell_idx][crow_idx][ccol_idx];
                         if(row_addr_i == {ROW_ADDR_W{1'b0}}) begin
                             if((cell_idx>>2) == (bcol_addr_i>>1)) begin
-                                ipxl_d[cell_idx][crow_idx][ccol_idx] = pgroup_i[(ccol_idx+1)*PIXEL_WIDTH-1-:PIXEL_WIDTH];
+                                ipxl_d[cell_idx][crow_idx][ccol_idx] = pgroup_i[(cell_idx%4)*CELL_COL_PNUM*PIXEL_WIDTH + (ccol_idx+1)*PIXEL_WIDTH-1-:PIXEL_WIDTH];
                             end
                         end
                         else if(cell_store_i) begin
@@ -401,7 +401,7 @@ module cell_buffer
                         ipxl_d[cell_idx][crow_idx][ccol_idx] = ipxl[cell_idx][crow_idx][ccol_idx];
                         if((cell_idx>>2) == (bcol_addr_i>>1)) begin
                             if(crow_idx == crow_addr_i) begin
-                                ipxl_d[cell_idx][crow_idx][ccol_idx] = pgroup_i[(ccol_idx+1)*PIXEL_WIDTH-1-:PIXEL_WIDTH];
+                                ipxl_d[cell_idx][crow_idx][ccol_idx] = pgroup_i[(cell_idx%4)*CELL_COL_PNUM*PIXEL_WIDTH + (ccol_idx+1)*PIXEL_WIDTH-1-:PIXEL_WIDTH];
                             end
                         end
                     end
