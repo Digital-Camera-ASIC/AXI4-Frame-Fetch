@@ -1,4 +1,7 @@
 `timescale 1ns / 1ps
+
+`define DEBUG
+
 module axi4_frame_fetch_tb;
     // Features configuration
     parameter IP_AMT            = 1;    // Number of Image processor    
@@ -28,6 +31,21 @@ module axi4_frame_fetch_tb;
     parameter CROW_ADDR_W       = $clog2(CELL_ROW_PNUM);
     parameter BCOL_ADDR_W       = $clog2(FRAME_COL_BNUM);
     parameter PGCOL_ADDR_W      = $clog2(FRAME_COL_PGNUM);
+    
+    class image;
+        bit [7:0] data[240 - 1 : 0][320 - 1 : 0];
+    endclass
+    class axi_transaction;
+        rand bit [DATA_WIDTH - 1 : 0] data;
+        bit [ADDR_WIDTH - 1 : 0] addr = 0;
+    endclass
+    class image_cell;
+        rand bit [CELL_WIDTH - 1 : 0] data;
+    endclass
+    axi_transaction myAXI;
+    axi_transaction axi_queue[$];
+    image_cell myCell;
+    image_cell cell_queue[$];
     logic                           ACLK_i;
     logic                           ARESETn_i;
     logic   [MST_ID_W-1:0]          m_AWID_i;
@@ -69,6 +87,18 @@ module axi4_frame_fetch_tb;
     
     genvar row_idx;
     genvar col_idx;
+    	integer fd;
+
+	initial begin
+		// Open a new file by the name "my_file.txt"
+		// with "write" permissions, and store the file
+		// handler pointer in variable "fd"
+		fd = $fopen("E:/dai_hoc/CE_project/log.txt", "w");
+
+		// Close the file handle pointed to by "fd"
+		$fclose(fd);
+	end
+
     generate
         // -- -- Internal pixel 
         for(row_idx = 0; row_idx < CELL_ROW_PNUM; row_idx = row_idx + 1) begin
@@ -115,7 +145,7 @@ module axi4_frame_fetch_tb;
         forever #1 ACLK_i <= ~ACLK_i;
     end
     
-    initial begin
+    initial begin // driver
         #20;
         m_AW_transfer(.AWID(3'd0), .AWADDR(32'd0));
         // Wait for Handshake occuring
@@ -124,14 +154,126 @@ module axi4_frame_fetch_tb;
         m_AWVALID_i <= 1'b0;
         counter = -1;
         for(int i = 0; i < 2400; i = i + 1) begin
-            m_W_transfer(.WDATA({8'd31, 8'd30, 8'd29, 8'd28, 8'd27, 8'd26, 8'd25, 8'd24, 8'd23, 8'd22, 8'd21, 8'd20, 8'd19, 8'd18, 8'd17, 8'd16, 8'd15, 8'd14, 8'd13, 8'd12, 8'd11, 8'd10, 8'd09, 8'd08, 8'd07, 8'd06, 8'd05, 8'd04, 8'd03, 8'd02, 8'd01, 8'd00}), .WLAST(1'b0));
+            myAXI = new;
+            myAXI.randomize();
+            m_W_transfer(.WDATA(myAXI.data), .WLAST(1'b0));
             // Wait for Handshake occuring
             wait(m_WREADY_o == 1'b1); #0.1;
             counter = counter + 1;
+            axi_queue.push_back(myAXI);
         end
         cl;
         m_WVALID_i <= 1'b0;
         
+    end
+
+    initial begin // monitor
+        forever begin
+            cl;
+            wait(cell_valid_o[0]);
+            myCell = new;
+            myCell.data = cell_data_o;
+            cell_queue.push_back(myCell);
+        end
+    end
+    
+    bit [CELL_WIDTH - 1 : 0] temp;
+    int trans_cnt = 0;
+    int v_id = 0;
+    int h_id = 0;
+    bit cp_flag = 0;
+    image gm = new();
+    bit [7:0] gm_data;
+    string str;
+    initial begin // scoreboard
+        
+        fork
+             begin // predictor
+                 forever begin
+                     wait(axi_queue.size);
+`ifdef DEBUG
+$sformat(str,"AXI[%0d]: %h", trans_cnt, axi_queue[0].data);
+`endif
+                     for(int i = 0; i < 32; i++) begin
+                         v_id = trans_cnt * 32 + i;
+                         h_id = trans_cnt % 10;
+
+                         gm.data[h_id][v_id] = axi_queue[0].data[i*8+:8];
+                     end
+                     trans_cnt++;
+                     if(trans_cnt == 2400) begin
+                         cp_flag = 1;
+                         trans_cnt = 0;
+                     end
+                     axi_queue.pop_front();
+                 end
+             end
+            begin // comparator
+                forever begin
+                    wait(cp_flag);
+                    cp_flag = 0;
+                    for(int cell_cnt = 0; cell_cnt < 1200; cell_cnt++) begin
+                        wait(cell_queue.size);
+`ifdef DEBUG
+$sformat(str,"CELL[%0d]: %h", cell_cnt, cell_queue[0].data);
+`endif
+                        for(int j = 0; j < 10*10 - 4; j++) begin
+                            gm_data = 0;
+                            v_id = (cell_cnt % 40) * 8 + j % 8;
+                            h_id = (cell_cnt / 40) * 8  + j / 8;
+                            if(j >= 64 && j <= 71) begin
+                                if(cell_cnt < 40) begin
+                                    v_id = -1;
+                                end else begin
+                                    v_id = (cell_cnt % 40) * 8 + j % 8;
+                                    h_id = (cell_cnt / 40 - 1) * 8  + 7;
+                                end
+                            end
+                            if(j >= 72 && j <= 79) begin
+                                if(cell_cnt % 40 == 0) begin
+                                    v_id = -1;
+                                end else begin
+                                    v_id = ((cell_cnt - 1) % 40) * 8 + 7;
+                                    h_id = (cell_cnt / 40) * 8  + (j - 72) * 8 + 7;
+                                end
+                            end
+                            if(j >= 80 && j <= 87) begin
+                                if((cell_cnt + 1) % 40 == 0) begin
+                                    v_id = -1;
+                                end else begin
+                                    v_id = ((cell_cnt + 1) % 40) * 8;
+                                    h_id = (cell_cnt / 40) * 8  + (j - 80) * 8;
+                                end
+                            end
+                            if(j >= 88 && j <= 95) begin
+                                if(cell_cnt + 40 >= 1200) begin
+                                    v_id = -1;
+                                end else begin
+                                    v_id = (cell_cnt % 40) * 8 + j % 8;
+                                    h_id = (cell_cnt / 40 + 1) * 8;
+                                end
+                            end
+                            if(v_id < 0)
+                                gm_data = 0;
+                            else
+                                gm_data = gm.data[h_id][v_id];
+                            temp = cell_queue[0].data;
+`ifdef DEBUG
+$sformat(str,"---------PRINT GOLDEN MODEL-----");
+$sformat(str,"v_id: %0d", v_id);
+$sformat(str,"h_id: %0d", h_id);
+$sformat(str,"j: %0d", j);
+$sformat(str,"gm_data: %h", gm_data);
+$sformat(str,"--------------");
+`endif
+                            if(gm_data != temp[8*j +: 8])
+                                $sformat(str,"ERROR: lhs = %h, rhs = %h", gm.data[h_id][v_id], temp[8*j +: 8]);
+                        end
+                        cell_queue.pop_front();
+                    end
+                end
+            end
+        join
     end
     task automatic m_AW_transfer(
         input [MST_ID_W-1:0]            AWID,
