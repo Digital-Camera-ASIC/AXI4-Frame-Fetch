@@ -48,7 +48,7 @@ module cell_controller
     wire                        pgroup_handshake;
     reg                         frame_complete;
     reg                         cctrl_st_d;
-    reg     [1:0]               ccol_store_ctn_d;
+    reg     [2:0]               ccol_store_ctn_d;
     reg     [ROW_ADDR_W-1:0]    row_addr_d;     // Row addr in 1 frame:             0 -> 239    (240)
     reg     [CROW_ADDR_W-1:0]   crow_addr_d;    // Pixel addr in 1 line of cell:    0 -> 7      (8)
     wire    [PGCOL_ADDR_W-1:0]  pgcol_addr_d;   // Block addr in 1 line:            0 -> 9      (10)
@@ -56,7 +56,7 @@ module cell_controller
     reg     [CELL_ADDR_W-1:0]   cell_wr_addr_d; // Writed cell addr in 1 frame:     0 -> 1199   (1200) 
     // -- reg
     reg                         cctrl_st_q;
-    reg     [1:0]               ccol_store_ctn_q; // 0 -> 3
+    reg     [2:0]               ccol_store_ctn_q; // 0 -> 3 / 0 -> 7
     reg     [ROW_ADDR_W-1:0]    row_addr_q;     // Row addr in 1 frame(Cell unit:   0 -> 29     (30 cells)
     reg     [CROW_ADDR_W-1:0]   crow_addr_q;    // Pixel addr in 1 line of cell:    0 -> 7      (8)
     reg     [PGCOL_ADDR_W-1:0]  pgcol_addr_q;   // Pixel group addr in 1 line:      0 -> 9      (10)
@@ -69,11 +69,11 @@ module cell_controller
     assign pgroup_wr_en_o       = pgroup_handshake;
     assign pgroup_ready_o       = ~|(cctrl_st_q ^ CBUF_ST);
     assign cell_wr_en_o         = ~|(cctrl_st_q ^ STORE_RAM_ST);
+    assign cell_wr_addr_o       = cell_wr_addr_q;
     assign row_addr_o           = row_addr_q;
     assign crow_addr_o          = crow_addr_q;
     assign bcol_addr_o          = {pgcol_addr_q, 1'b0};
     assign ccol_addr_o          = ccol_addr_q;
-    assign cell_wr_addr_o       = cell_wr_addr_q;
     // TODO: Quickstart mechanism /////////////////
     assign cell_fetch_start_o   = frame_complete_o;
     // ////////////////////////////////////////////
@@ -110,9 +110,10 @@ module cell_controller
         frame_complete  = 1'b0;
         case(cctrl_st_q) 
             CBUF_ST: begin
-                if(pgroup_handshake && (((~(row_addr_q == {ROW_ADDR_W{1'b0}})) && (crow_addr_q == {CROW_ADDR_W{1'b0}})) || ((row_addr_q == FRAME_ROW_CNUM-1) && (crow_addr_q == CELL_ROW_PNUM-1)))) begin
+                if(pgroup_handshake && (((~(row_addr_q == {ROW_ADDR_W{1'b0}})) && (crow_addr_q == {CROW_ADDR_W{1'b0}})) || ((row_addr_q == FRAME_ROW_CNUM-1) && (crow_addr_q == CELL_ROW_PNUM-1) && (pgcol_addr_q != 0)))) begin
+                    //                     (Is not first row of frame          and   Is first row of cell             ) OR (Last row of frame                and  Last row of cell               but  Skip the first pgroup of this line) 
                     cctrl_st_d          = STORE_RAM_ST;
-                    ccol_store_ctn_d    = 2'd0;
+                    ccol_store_ctn_d    = 3'd0;
                 end
             end
             STORE_RAM_ST: begin
@@ -120,8 +121,15 @@ module cell_controller
                 cell_wr_addr_d      = (cell_wr_addr_q == CELL_NUM-1) ? {CELL_ADDR_W{1'b0}} : cell_wr_addr_q + 1'b1;
                 ccol_addr_d         = (ccol_addr_q == FRAME_COL_CNUM-1) ? {COL_ADDR_W{1'b0}} : ccol_addr_q + 1'b1;
                 frame_complete      = (cell_wr_addr_q == CELL_NUM-1);
-                if(~|(ccol_store_ctn_q ^ 2'd3)) begin
-                    cctrl_st_d          = CBUF_ST;
+                if((row_addr_q == 0) && (crow_addr_q == 0) && (pgcol_addr_q == 0)) begin   // Last 8 cells of a frame (push all 8 cells without any stall)
+                    if(~|(ccol_store_ctn_q ^ 3'd7)) begin
+                        cctrl_st_d          = CBUF_ST;
+                    end
+                end
+                else begin
+                    if(~|(ccol_store_ctn_q ^ 3'd3)) begin   // Push 4 cells 
+                        cctrl_st_d          = CBUF_ST;
+                    end
                 end
             end
         endcase
@@ -156,7 +164,7 @@ module cell_controller
             cctrl_st_q      <= 1'b0;
             cell_wr_addr_q  <= {CELL_ADDR_W{1'b0}};
             ccol_addr_q     <= {COL_ADDR_W{1'b0}};
-            ccol_store_ctn_q<= 2'd0;
+            ccol_store_ctn_q<= 3'd0;
         end
         else begin
             cctrl_st_q      <= cctrl_st_d;
