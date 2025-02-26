@@ -57,7 +57,7 @@ module cell_controller
     // -- reg
     reg                         cctrl_st_q;
     reg     [1:0]               ccol_store_ctn_q; // 0 -> 3
-    reg     [ROW_ADDR_W-1:0]    row_addr_q;     // Row addr in 1 frame:             0 -> 239    (240)
+    reg     [ROW_ADDR_W-1:0]    row_addr_q;     // Row addr in 1 frame(Cell unit:   0 -> 29     (30 cells)
     reg     [CROW_ADDR_W-1:0]   crow_addr_q;    // Pixel addr in 1 line of cell:    0 -> 7      (8)
     reg     [PGCOL_ADDR_W-1:0]  pgcol_addr_q;   // Pixel group addr in 1 line:      0 -> 9      (10)
     reg     [COL_ADDR_W-1:0]    ccol_addr_q;    // Cell addr in 1 line:             0 -> 39     (40)

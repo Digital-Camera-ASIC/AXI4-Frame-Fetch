@@ -37,5 +37,6 @@ module cell_mask
     assign l_opxl_msk   = {LOPXL_SIZE{~(l_msk_en_i)}} & l_opxl_flat;
     assign r_opxl_msk   = {ROPXL_SIZE{~(r_msk_en_i)}} & r_opxl_flat;
     assign b_opxl_msk   = {BOPXL_SIZE{~(b_msk_en_i)}} & b_opxl_flat;
-    assign cell_o       = {ipxl_flat, t_opxl_msk, l_opxl_msk, r_opxl_msk, b_opxl_msk};
+    assign cell_o       = {b_opxl_msk, r_opxl_msk, l_opxl_msk, t_opxl_msk, ipxl_flat};
 endmodule
+ 

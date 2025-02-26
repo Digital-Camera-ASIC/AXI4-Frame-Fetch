@@ -384,14 +384,16 @@ module cell_buffer
                 if(crow_idx == 0) begin
                     always @(*) begin
                         ipxl_d[cell_idx][crow_idx][ccol_idx] = ipxl[cell_idx][crow_idx][ccol_idx];
-                        if(row_addr_i == {ROW_ADDR_W{1'b0}}) begin
-                            if((cell_idx>>2) == (bcol_addr_i>>1)) begin
-                                ipxl_d[cell_idx][crow_idx][ccol_idx] = pgroup_i[(cell_idx%4)*CELL_COL_PNUM*PIXEL_WIDTH + (ccol_idx+1)*PIXEL_WIDTH-1-:PIXEL_WIDTH];
+                        if(crow_idx == crow_addr_i) begin
+                            if(row_addr_i == {ROW_ADDR_W{1'b0}}) begin
+                                if((cell_idx>>2) == (bcol_addr_i>>1)) begin
+                                    ipxl_d[cell_idx][crow_idx][ccol_idx] = pgroup_i[(cell_idx%4)*CELL_COL_PNUM*PIXEL_WIDTH + (ccol_idx+1)*PIXEL_WIDTH-1-:PIXEL_WIDTH];
+                                end
                             end
-                        end
-                        else if(cell_store_i) begin
-                            if(cell_idx == ccell_addr_i) begin
-                                ipxl_d[cell_idx][crow_idx][ccol_idx] = b_opxl[cell_idx][ccol_idx];
+                            else if(cell_store_i) begin
+                                if(cell_idx == ccell_addr_i) begin
+                                    ipxl_d[cell_idx][crow_idx][ccol_idx] = b_opxl[cell_idx][ccol_idx];
+                                end
                             end
                         end
                     end
