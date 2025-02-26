@@ -234,7 +234,7 @@ $fwrite(fd, str);
                                     v_id = -1;
                                 end else begin
                                     v_id = ((cell_cnt - 1) % 40) * 8 + 7;
-                                    h_id = (cell_cnt / 40) * 8  + (j - 72) * 8 + 7;
+                                    h_id = (cell_cnt / 40) * 8  + (j - 72);
                                 end
                             end
                             if(j >= 80 && j <= 87) begin
