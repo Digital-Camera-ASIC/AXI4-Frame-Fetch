@@ -93,7 +93,7 @@ module axi4_frame_fetch_tb;
 		// Open a new file by the name "my_file.txt"
 		// with "write" permissions, and store the file
 		// handler pointer in variable "fd"
-		fd = $fopen("E:/dai_hoc/CE_project/axi_frame_fetch/AXI4-Frame-Fetch/sim/tb/myLog.txt", "w");
+		fd = $fopen("L:/Projects/axi4_hog_accel/axi4_frame_fetch/sim/tb/myLog.txt", "w");
 
 	end
 

@@ -94,8 +94,10 @@ module cell_buffer
                     always @(*) begin
                         l_opxl_d[cell_idx][crow_idx] = l_opxl[cell_idx][crow_idx];
                         if(pgroup_wr_en_i) begin
-                            if(((cell_idx>>2) - 1) == (bcol_addr_i>>1)) begin
-                                l_opxl_d[cell_idx][crow_idx] = pgroup_i[((31+1)*PIXEL_WIDTH)-1:31*PIXEL_WIDTH];
+                            if(((cell_idx-1)>>2) == (bcol_addr_i>>1)) begin
+                                if(crow_idx == crow_addr_i) begin
+                                    l_opxl_d[cell_idx][crow_idx] = pgroup_i[((31+1)*PIXEL_WIDTH)-1:31*PIXEL_WIDTH];
+                                end
                             end
                         end
                     end
@@ -144,7 +146,7 @@ module cell_buffer
                             l_opxl_d[cell_idx][crow_idx] = l_opxl[cell_idx][crow_idx];
                             if(pgroup_wr_en_i) begin
                                 if((crow_addr_i == {CROW_ADDR_W{1'b0}}) & (row_addr_i == 0)) begin
-                                    if(((cell_idx>>2) - 1) == bcol_addr_i>>1) begin
+                                    if(((cell_idx-1)>>2) == bcol_addr_i>>1) begin
                                         l_opxl_d[cell_idx][0] = pgroup_i[((31+1)*PIXEL_WIDTH)-1:31*PIXEL_WIDTH];
                                     end
                                 end
@@ -336,7 +338,7 @@ module cell_buffer
                             r_opxl_d[cell_idx][crow_idx] = r_opxl[cell_idx][crow_idx];
                             if(pgroup_wr_en_i) begin
                                 if((crow_addr_i == 0) & (row_addr_i == 0)) begin
-                                    if((cell_idx>>2) == (bcol_addr_i>>1)) begin
+                                    if(((cell_idx+1)>>2) == (bcol_addr_i>>1)) begin
                                         r_opxl_d[cell_idx][crow_idx] = pgroup_i[((0+1)*PIXEL_WIDTH)-1:0*PIXEL_WIDTH];
                                     end
                                 end
