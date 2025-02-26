@@ -93,10 +93,8 @@ module axi4_frame_fetch_tb;
 		// Open a new file by the name "my_file.txt"
 		// with "write" permissions, and store the file
 		// handler pointer in variable "fd"
-		fd = $fopen("E:/dai_hoc/CE_project/log.txt", "w");
+		fd = $fopen("E:/dai_hoc/CE_project/axi_frame_fetch/AXI4-Frame-Fetch/sim/tb/myLog.txt", "w");
 
-		// Close the file handle pointed to by "fd"
-		$fclose(fd);
 	end
 
     generate
@@ -192,11 +190,12 @@ module axi4_frame_fetch_tb;
                  forever begin
                      wait(axi_queue.size);
 `ifdef DEBUG
-$sformat(str,"AXI[%0d]: %h", trans_cnt, axi_queue[0].data);
+$sformat(str,"AXI[%0d]: %h\n", trans_cnt, axi_queue[0].data);
+$fwrite(fd, str);
 `endif
                      for(int i = 0; i < 32; i++) begin
-                         v_id = trans_cnt * 32 + i;
-                         h_id = trans_cnt % 10;
+                         v_id = (trans_cnt % 10) * 32 + i;
+                         h_id = trans_cnt / 10;
 
                          gm.data[h_id][v_id] = axi_queue[0].data[i*8+:8];
                      end
@@ -215,7 +214,8 @@ $sformat(str,"AXI[%0d]: %h", trans_cnt, axi_queue[0].data);
                     for(int cell_cnt = 0; cell_cnt < 1200; cell_cnt++) begin
                         wait(cell_queue.size);
 `ifdef DEBUG
-$sformat(str,"CELL[%0d]: %h", cell_cnt, cell_queue[0].data);
+$sformat(str,"CELL[%0d]: %h\n", cell_cnt, cell_queue[0].data);
+$fwrite(fd, str);
 `endif
                         for(int j = 0; j < 10*10 - 4; j++) begin
                             gm_data = 0;
@@ -259,15 +259,23 @@ $sformat(str,"CELL[%0d]: %h", cell_cnt, cell_queue[0].data);
                                 gm_data = gm.data[h_id][v_id];
                             temp = cell_queue[0].data;
 `ifdef DEBUG
-$sformat(str,"---------PRINT GOLDEN MODEL-----");
-$sformat(str,"v_id: %0d", v_id);
-$sformat(str,"h_id: %0d", h_id);
-$sformat(str,"j: %0d", j);
-$sformat(str,"gm_data: %h", gm_data);
-$sformat(str,"--------------");
+$sformat(str,"---------PRINT GOLDEN MODEL-----\n");
+$fwrite(fd, str);
+$sformat(str,"v_id: %0d\n", v_id);
+$fwrite(fd, str);
+$sformat(str,"h_id: %0d\n", h_id);
+$fwrite(fd, str);
+$sformat(str,"j: %0d\n", j);
+$fwrite(fd, str);
+$sformat(str,"gm_data: %h\n", gm_data);
+$fwrite(fd, str);
+$sformat(str,"--------------\n");
+$fwrite(fd, str);
 `endif
-                            if(gm_data != temp[8*j +: 8])
-                                $sformat(str,"ERROR: lhs = %h, rhs = %h", gm.data[h_id][v_id], temp[8*j +: 8]);
+                            if(gm_data != temp[8*j +: 8]) begin
+$sformat(str,"ERROR: lhs = %h, rhs = %h\n", gm.data[h_id][v_id], temp[8*j +: 8]);
+$fwrite(fd, str);
+                            end
                         end
                         cell_queue.pop_front();
                     end
