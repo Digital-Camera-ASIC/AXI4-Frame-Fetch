@@ -28,10 +28,10 @@ module cell_fetch
     output                      fwd_cell_valid_o
 );
     // Local parameter
-    localparam              IDLE_ST     = 2'd00;
-    localparam              FETCH_ST    = 2'd02;
-    localparam              SETUP_ST    = 2'd01;
-    localparam              HOLD_ST     = 2'd03;
+    localparam              IDLE_ST     = 2'd0;
+    localparam              FETCH_ST    = 2'd2;
+    localparam              SETUP_ST    = 2'd1;
+    localparam              HOLD_ST     = 2'd3;
     // Internal signal
     // -- wire
     wire                    cs_bwd_valid;
