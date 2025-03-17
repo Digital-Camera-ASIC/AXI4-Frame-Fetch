@@ -70,12 +70,13 @@ module axi_controller
     assign ip_addr                      = s_tdest[IP_BIT_MAP];
     assign pixel_valid_en               = s_tvalid;
     assign pgroup_o                     = s_tdata;
-    assign s_tready                     = pgroup_ready_i[ip_addr];
     generate
     if(IP_AMT == 1) begin
+        assign s_tready                 = pgroup_ready_i;
         assign pgroup_valid_o           = pixel_valid_en;
     end
     else begin
+        assign s_tready                 = pgroup_ready_i[ip_addr];
         for(ip_idx = 0; ip_idx < IP_AMT; ip_idx = ip_idx + 1) begin
            assign pgroup_valid_o[ip_idx]= (ip_addr == ip_idx) & pixel_valid_en;
         end
