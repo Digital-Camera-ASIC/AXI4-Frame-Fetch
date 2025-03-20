@@ -1,15 +1,16 @@
 module axi_controller
 #(
     // Image Processor
-    parameter IP_AMT        = 1,    // Image processor amount  
-    parameter IP_ADDR_W     = $clog2(IP_AMT),
-    parameter IP_DATA_W     = 256,
+    parameter IP_AMT            = 1,    // Image processor amount  
+    parameter IP_ADDR_W         = $clog2(IP_AMT),
+    parameter IP_DATA_W         = 256,
     // AXI-Stream configuration
-    parameter AXIS_TID_W    = 2,
-    parameter AXIS_TDEST_W  = (IP_ADDR_W > 1) ? IP_ADDR_W : 1,
-    parameter AXIS_TDATA_W  = IP_DATA_W,
-    parameter AXIS_TKEEP_W  = AXIS_TDATA_W/8,
-    parameter AXIS_TSTRB_W  = AXIS_TDATA_W/8
+    parameter AXIS_TDEST_BASE   = 1'b1,
+    parameter AXIS_TID_W        = 2,
+    parameter AXIS_TDEST_W      = (IP_ADDR_W > 1) ? IP_ADDR_W : 1,
+    parameter AXIS_TDATA_W      = IP_DATA_W,
+    parameter AXIS_TKEEP_W      = AXIS_TDATA_W/8,
+    parameter AXIS_TSTRB_W      = AXIS_TDATA_W/8
 )
 (
     // Input declaration
@@ -46,6 +47,9 @@ module axi_controller
     wire                        s_tlast;
     wire                        s_tvalid;
     wire                        s_tready;
+    wire                        s_tvalid_bwd;
+    wire                        s_tready_bwd;
+    wire                        axis_map;
     // -- -- Frame fetch
     wire    [IP_ADDR_W-1:0]     ip_addr;      
     wire                        pixel_valid_en;          
@@ -59,8 +63,8 @@ module axi_controller
         .clk        (clk),
         .rst_n      (rst_n),
         .bwd_data_i ({s_tdest_i,    s_tdata_i}),
-        .bwd_valid_i(s_tvalid_i),
-        .bwd_ready_o(s_tready_o),
+        .bwd_valid_i(s_tvalid_bwd),
+        .bwd_ready_o(s_tready_bwd),
         .fwd_data_o ({s_tdest,      s_tdata}),
         .fwd_valid_o(s_tvalid),
         .fwd_ready_i(s_tready)
@@ -72,7 +76,10 @@ module axi_controller
     assign pgroup_o                     = s_tdata;
     generate
     if(IP_AMT == 1) begin
+        assign axis_map                 = ~|(s_tdest_i^AXIS_TDEST_BASE);
         assign s_tready                 = pgroup_ready_i;
+        assign s_tvalid_bwd             = s_tvalid_i & axis_map;
+        assign s_tready_o               = s_tvalid_bwd & axis_map;
         assign pgroup_valid_o           = pixel_valid_en;
     end
     else begin

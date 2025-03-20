@@ -5,6 +5,7 @@ module axi_frame_fetch
     parameter IP_ADDR_W         = $clog2(IP_AMT),
     parameter IP_DATA_W         = 256,
     // AXI-Stream configuration
+    parameter AXIS_TDEST_BASE   = 1'b1,
     parameter AXIS_TID_W        = 2,
     parameter AXIS_TDEST_W      = (IP_ADDR_W > 1) ? IP_ADDR_W : 1,
     parameter AXIS_TDATA_W      = IP_DATA_W,
@@ -74,6 +75,7 @@ module axi_frame_fetch
         .IP_AMT         (IP_AMT),
         .IP_ADDR_W      (IP_ADDR_W),
         .IP_DATA_W      (IP_DATA_W),
+        .AXIS_TDEST_BASE(AXIS_TDEST_BASE),
         .AXIS_TID_W     (AXIS_TID_W),
         .AXIS_TDEST_W   (AXIS_TDEST_W),
         .AXIS_TDATA_W   (AXIS_TDATA_W),
