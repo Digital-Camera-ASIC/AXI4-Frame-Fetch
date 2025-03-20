@@ -5,7 +5,7 @@ module axi_controller
     parameter IP_ADDR_W         = $clog2(IP_AMT),
     parameter IP_DATA_W         = 256,
     // AXI-Stream configuration
-    parameter AXIS_TDEST_BASE   = 1'b1,
+    parameter AXIS_TDEST_MSK    = 1'b1,
     parameter AXIS_TID_W        = 2,
     parameter AXIS_TDEST_W      = (IP_ADDR_W > 1) ? IP_ADDR_W : 1,
     parameter AXIS_TDATA_W      = IP_DATA_W,
@@ -76,10 +76,10 @@ module axi_controller
     assign pgroup_o                     = s_tdata;
     generate
     if(IP_AMT == 1) begin
-        assign axis_map                 = ~|(s_tdest_i^AXIS_TDEST_BASE);
+        assign axis_map                 = ~|(s_tdest_i^AXIS_TDEST_MSK);
         assign s_tready                 = pgroup_ready_i;
         assign s_tvalid_bwd             = s_tvalid_i & axis_map;
-        assign s_tready_o               = s_tvalid_bwd & axis_map;
+        assign s_tready_o               = s_tready_bwd & axis_map;
         assign pgroup_valid_o           = pixel_valid_en;
     end
     else begin
