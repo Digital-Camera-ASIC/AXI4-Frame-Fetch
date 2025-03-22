@@ -109,12 +109,14 @@ module cell_fetch
             FETCH_ST: begin
                 if(cs_bwd_ready) begin
                     cell_d = cell_msk;
-                    cell_counter_d = cell_counter + 1'b1;
+                    cell_counter_d = {CELL_ADDR_W{(|(cell_counter^(CELL_NUM-1)))}} & (cell_counter + 1'b1);
                     cell_col_counter_d = {COL_ADDR_W{(|(cell_col_counter^(FRAME_COL_CNUM-1)))}} & (cell_col_counter + 1'b1);
-                    if(cell_counter == CELL_NUM) begin    // Last cell in 1 frame
+                    if(cell_counter == (CELL_NUM-1)) begin    // Last cell in 1 frame
                         cell_fetch_st_d = HOLD_ST;
+                        cell_col_counter_d = {COL_ADDR_W{1'b0}};
+                        cell_row_counter_d = {ROW_ADDR_W{1'b0}};
                     end
-                    if(cell_col_counter == FRAME_COL_CNUM-1) begin
+                    else if(cell_col_counter == (FRAME_COL_CNUM-1)) begin
                         cell_row_counter_d = {ROW_ADDR_W{(|(cell_row_counter^(FRAME_ROW_CNUM-1)))}} & (cell_row_counter + 1'b1);
                     end
                 end

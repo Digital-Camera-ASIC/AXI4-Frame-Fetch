@@ -9,6 +9,7 @@ module axi_frame_fetch_tb;
     parameter IP_ADDR_W         = $clog2(IP_AMT);
     parameter IP_DATA_W         = 256;
     // AXI-Stream configuration
+    parameter AXIS_TDEST_MSK    = 1'b0;
     parameter AXIS_TID_W        = 2;
     parameter AXIS_TDEST_W      = (IP_ADDR_W > 1) ? IP_ADDR_W : 1;
     parameter AXIS_TDATA_W      = IP_DATA_W;
@@ -115,7 +116,10 @@ module axi_frame_fetch_tb;
         end
     endgenerate
     
-    axi_frame_fetch uut(
+    axi_frame_fetch #(
+        .AXIS_TDEST_MSK (AXIS_TDEST_MSK)
+    )
+    uut(
         .*
     );
     
