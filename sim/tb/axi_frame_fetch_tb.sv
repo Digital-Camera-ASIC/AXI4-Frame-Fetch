@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-`define DEBUG
+`define LOG_PATH "E:/dai_hoc/CE_project/AXI4-Frame-Fetch/sim/tb/myLog.txt"
 
 module axi_frame_fetch_tb;
     // Features configuration
@@ -93,7 +93,7 @@ module axi_frame_fetch_tb;
 		// Open a new file by the name "my_file.txt"
 		// with "write" permissions, and store the file
 		// handler pointer in variable "fd"
-		fd = $fopen("L:/Projects/axi4_hog_accel/axi4_frame_fetch/sim/tb/myLog.txt", "w");
+		fd = $fopen(`LOG_PATH, "w");
 
 	end
 
@@ -190,10 +190,10 @@ module axi_frame_fetch_tb;
              begin // predictor
                  forever begin
                      wait(axi_queue.size);
-`ifdef DEBUG
-$sformat(str,"AXI[%0d]: %h\n", trans_cnt, axi_queue[0].data);
+
+$sformat(str,"%t: AXI[%0d]: %h\n", $time, trans_cnt, axi_queue[0].data);
 $fwrite(fd, str);
-`endif
+
                      for(int i = 0; i < 32; i++) begin
                          v_id = (trans_cnt % 10) * 32 + i;
                          h_id = trans_cnt / 10;
@@ -214,10 +214,10 @@ $fwrite(fd, str);
                     cp_flag = 0;
                     for(int cell_cnt = 0; cell_cnt < 1200; cell_cnt++) begin
                         wait(cell_queue.size);
-`ifdef DEBUG
-$sformat(str,"CELL[%0d]: %h\n", cell_cnt, cell_queue[0].data);
+
+$sformat(str,"%t: CELL[%0d]: %h\n", $time, cell_cnt, cell_queue[0].data);
 $fwrite(fd, str);
-`endif
+
                         for(int j = 0; j < 10*10 - 4; j++) begin
                             gm_data = 0;
                             v_id = (cell_cnt % 40) * 8 + j % 8;
