@@ -145,8 +145,8 @@ module cell_fetch
                 end
                 if(~(bwd_cell_rd_rdy | skid_cell_vld)) begin // No more cell
                     cell_fetch_st_d    = IDLE_ST;
-                    cell_col_counter_d = {COL_ADDR_W{(|(cell_col_counter^(FRAME_COL_CNUM-1)))}};
-                    cell_row_counter_d = {ROW_ADDR_W{(|(cell_row_counter^(FRAME_ROW_CNUM-1)))}};
+                    cell_col_counter_d = {COL_ADDR_W{1'b0}};
+                    cell_row_counter_d = {ROW_ADDR_W{1'b0}};
                 end
             end
         endcase
