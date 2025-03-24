@@ -10,40 +10,40 @@ module cell_fetch
     parameter COL_ADDR_W        = $clog2(FRAME_COL_CNUM)
 )
 (
-    // Input declaration
     input                       clk,
     input                       rst,
-    // -- To Cell Cache
-    input   [CELL_WIDTH-1:0]    bwd_cell_data_i,
-    // -- To Cell Controller
+
     input                       cell_fetch_start_i,
-    // -- To HOG
-    input                       fwd_cell_ready_i,
-    // Output declaration 
     // -- To Cell Cache
-    output                      bwd_cell_en_o,
     output  [CELL_ADDR_W-1:0]   bwd_cell_addr_o,
+    input   [CELL_WIDTH-1:0]    bwd_cell_data_i,
+    output                      bwd_cell_rd_vld,
+    input                       bwd_cell_rd_rdy,
     // -- To HOG
     output  [CELL_WIDTH-1:0]    fwd_cell_data_o,
-    output                      fwd_cell_valid_o
+    output                      fwd_cell_valid_o,
+    input                       fwd_cell_ready_i
 );
     // Local parameter
     localparam              IDLE_ST     = 2'd0;
-    localparam              FETCH_ST    = 2'd2;
-    localparam              SETUP_ST    = 2'd1;
-    localparam              HOLD_ST     = 2'd3;
+    localparam              FETCH_ST    = 2'd1;
+    localparam              EOF_ST      = 2'd2;
+
     // Internal signal
     // -- wire
     wire                    cs_bwd_valid;
     wire                    cs_bwd_ready;
     wire[CELL_WIDTH-1:0]    cell_msk;
-    reg [CELL_WIDTH-1:0]    cell_d;        // Cell pipeline
     reg [1:0]               cell_fetch_st_d;
     reg [CELL_ADDR_W-1:0]   cell_counter_d;
     reg [ROW_ADDR_W-1:0]    cell_row_counter_d;
     reg [COL_ADDR_W-1:0]    cell_col_counter_d;
+    reg                     bwd_cell_rd_vld_int;
+    reg                     fwd_cell_valid_int;
+    reg [CELL_WIDTH-1:0]    fwd_cell_data_int;
+    wire[CELL_WIDTH-1:0]    skid_cell_dat;
+    wire                    skid_cell_vld;
     // -- reg
-    reg [CELL_WIDTH-1:0]    cell_q;         // Cell pipeline
     reg [1:0]               cell_fetch_st_q;
     reg [CELL_ADDR_W-1:0]   cell_counter;
     reg [ROW_ADDR_W-1:0]    cell_row_counter;
@@ -74,56 +74,79 @@ module cell_fetch
         .r_msk_en_i (~|(cell_col_counter^(FRAME_COL_CNUM-1))),
         .cell_o     (cell_msk)
     );
-    
-    // Combination logic
-    // -- Output
-    assign fwd_cell_data_o  = cell_q;
-    assign fwd_cell_valid_o = cs_bwd_valid;
-    assign bwd_cell_en_o    = cell_fetch_start_i | (cell_fetch_st_q == SETUP_ST) | (cs_bwd_ready & cs_bwd_valid);
+    sync_fifo #(
+        .FIFO_TYPE      (1), // Normal
+        .DATA_WIDTH     (CELL_WIDTH),
+        .FIFO_DEPTH     (2) // = Memory latency
+    ) cell_skid (
+        .clk           (clk),
+        .data_i        (cell_msk),
+        .wr_valid_i    (bwd_cell_rd_rdy & (~fwd_cell_ready_i)), // cell-skid event occurs
+        .wr_ready_o    (),
+        .data_o        (skid_cell_dat),
+        .rd_ready_o    (skid_cell_vld),
+        .rd_valid_i    (skid_cell_vld & (fwd_cell_valid_o & fwd_cell_ready_i)), // Handshaking occurs and that is for skid cell 
+        .empty_o       (),
+        .full_o        (),
+        .almost_empty_o(),
+        .almost_full_o (),
+        .counter       (),
+        .rst_n         (~rst)
+    );
+
+
+    // Combinational logic
     assign bwd_cell_addr_o  = cell_counter;
-    // -- Internal
-    assign cs_bwd_valid     = (cell_fetch_st_q == FETCH_ST) || (cell_fetch_st_q == HOLD_ST);
-    assign cs_bwd_ready     = fwd_cell_ready_i;
-    // -- Pipelined RAM controller
-    always @(*) begin
-        cell_d              = cell_q;
+    assign bwd_cell_rd_vld  = bwd_cell_rd_vld_int;
+    assign fwd_cell_data_o  = fwd_cell_data_int;
+    assign fwd_cell_valid_o = fwd_cell_valid_int;
+    always @* begin
         cell_fetch_st_d     = cell_fetch_st_q;
-        cell_counter_d      = cell_counter;
-        cell_row_counter_d  = cell_row_counter;
+        cell_counter_d      = cell_counter; // Store address of the cell in Cache
         cell_col_counter_d  = cell_col_counter;
+        cell_row_counter_d  = cell_row_counter;
+        fwd_cell_data_int   = cell_msk;
+        bwd_cell_rd_vld_int = 1'b0;
+        fwd_cell_valid_int  = 1'b0;
+
+
         case(cell_fetch_st_q)
             IDLE_ST: begin
                 if(cell_fetch_start_i) begin
-                    cell_fetch_st_d = SETUP_ST;
-                    cell_counter_d = cell_counter + 1'b1;
-                    cell_row_counter_d = {ROW_ADDR_W{1'b0}};
-                    cell_col_counter_d = {COL_ADDR_W{1'b0}};
+                    cell_fetch_st_d     = FETCH_ST;
+                    bwd_cell_rd_vld_int = 1'b1;
+                    cell_counter_d      = cell_counter + 1'b1; // Store address of the cell in Cache
                 end
             end
-            SETUP_ST: begin // Setup state in Pipelined RAM
-                cell_fetch_st_d = FETCH_ST;
-                cell_d = cell_msk;
-                cell_counter_d = cell_counter + 1'b1;
-                cell_col_counter_d = cell_col_counter + 1'b1;
-            end
             FETCH_ST: begin
-                if(cs_bwd_ready) begin
-                    cell_d = cell_msk;
-                    cell_counter_d = {CELL_ADDR_W{(|(cell_counter^(CELL_NUM-1)))}} & (cell_counter + 1'b1);
+                cell_counter_d      = cell_counter + bwd_cell_rd_vld; // Store address of the cell in Cache
+                fwd_cell_data_int   = skid_cell_vld ? skid_cell_dat : cell_msk;
+                fwd_cell_valid_int  = bwd_cell_rd_rdy | skid_cell_vld;
+                bwd_cell_rd_vld_int = fwd_cell_ready_i;
+                if((cell_counter == (CELL_NUM-1)) & bwd_cell_rd_vld) begin // Read signal for last cell of a frame is sent
+                    cell_fetch_st_d = EOF_ST;
+                    cell_counter_d = {CELL_ADDR_W{1'b0}};
+                end
+                if(bwd_cell_rd_rdy) begin
                     cell_col_counter_d = {COL_ADDR_W{(|(cell_col_counter^(FRAME_COL_CNUM-1)))}} & (cell_col_counter + 1'b1);
-                    if(cell_counter == (CELL_NUM-1)) begin    // Last cell in 1 frame
-                        cell_fetch_st_d = HOLD_ST;
-                        cell_col_counter_d = {COL_ADDR_W{1'b0}};
-                        cell_row_counter_d = {ROW_ADDR_W{1'b0}};
-                    end
-                    else if(cell_col_counter == (FRAME_COL_CNUM-1)) begin
+                    if(cell_col_counter == (FRAME_COL_CNUM-1)) begin
                         cell_row_counter_d = {ROW_ADDR_W{(|(cell_row_counter^(FRAME_ROW_CNUM-1)))}} & (cell_row_counter + 1'b1);
                     end
                 end
             end
-            HOLD_ST: begin  // Hold state in Pipeline RAM
-                if(cs_bwd_ready) begin
-                    cell_fetch_st_d = IDLE_ST;
+            EOF_ST: begin
+                fwd_cell_data_int   = skid_cell_vld ? skid_cell_dat : cell_msk;
+                fwd_cell_valid_int  = bwd_cell_rd_rdy | skid_cell_vld;
+                if(bwd_cell_rd_rdy) begin
+                    cell_col_counter_d = {COL_ADDR_W{(|(cell_col_counter^(FRAME_COL_CNUM-1)))}} & (cell_col_counter + 1'b1);
+                    if(cell_col_counter == (FRAME_COL_CNUM-1)) begin
+                        cell_row_counter_d = {ROW_ADDR_W{(|(cell_row_counter^(FRAME_ROW_CNUM-1)))}} & (cell_row_counter + 1'b1);
+                    end
+                end
+                if(~(bwd_cell_rd_rdy | skid_cell_vld)) begin // No more cell
+                    cell_fetch_st_d    = IDLE_ST;
+                    cell_col_counter_d = {COL_ADDR_W{1'b0}};
+                    cell_row_counter_d = {ROW_ADDR_W{1'b0}};
                 end
             end
         endcase
@@ -139,7 +162,6 @@ module cell_fetch
         end
         else begin
             cell_fetch_st_q <= cell_fetch_st_d;
-            cell_q          <= cell_d;
             cell_counter    <= cell_counter_d;
             cell_row_counter <= cell_row_counter_d;
             cell_col_counter <= cell_col_counter_d;

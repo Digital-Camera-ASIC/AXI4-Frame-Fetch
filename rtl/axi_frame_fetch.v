@@ -68,6 +68,7 @@ module axi_frame_fetch
     wire    [CELL_WIDTH-1:0]    cb_cell_data            [0:IP_AMT-1];
     wire    [CELL_WIDTH-1:0]    ccache_cell_rd_data     [0:IP_AMT-1];
     wire                        cf_cell_rd_en           [0:IP_AMT-1];
+    wire                        cf_cell_rd_rdy          [0:IP_AMT-1];
     wire    [CELL_ADDR_W-1:0]   cf_cell_rd_addr         [0:IP_AMT-1];
     // Internal module 
     // -- AXI4 Controller
@@ -131,30 +132,37 @@ module axi_frame_fetch
             .cell_store_i       (cc_cell_wr_en[ip_idx]),
             .cell_data_o        (cb_cell_data[ip_idx])
         );
-        // -- Cell mapping
-        cell_cache #(
-        
+        // -- Cell Cache
+        memory #(
+            .DATA_W             (CELL_WIDTH),
+            .ADDR_W             (CELL_ADDR_W),
+            .MEM_SIZE           (CELL_NUM)
         ) cell_cache (
             .clk                (s_aclk),
-            .rst                (~s_aresetn),
-            .cell_wr_en_i       (cc_cell_wr_en[ip_idx]),
-            .cell_wr_data_i     (cb_cell_data[ip_idx]),
-            .cell_wr_addr_i     (cc_cell_wr_addr[ip_idx]),
-            .cell_rd_en_i       (cf_cell_rd_en[ip_idx]),
-            .cell_rd_addr_i     (cf_cell_rd_addr[ip_idx]),
-            .cell_rd_data_o     (ccache_cell_rd_data[ip_idx])
+            .rst_n              (s_aresetn),
+            .wr_addr_i          (cc_cell_wr_addr[ip_idx]),
+            .wr_data_i          (cb_cell_data[ip_idx]),
+            .wr_vld_i           (cc_cell_wr_en[ip_idx]),
+            .wr_rdy_o           (),
+            .rd_addr_i          (cf_cell_rd_addr[ip_idx]),
+            .rd_data_o          (ccache_cell_rd_data[ip_idx]),
+            .rd_vld_i           (cf_cell_rd_en[ip_idx]),
+            .rd_rdy_o           (cf_cell_rd_rdy[ip_idx])
         );
+
+
         // -- Cell fetch
         cell_fetch #(
         
         ) cell_fetch (
             .clk                (s_aclk),
             .rst                (~s_aresetn),
+            .bwd_cell_addr_o    (cf_cell_rd_addr[ip_idx]),
             .bwd_cell_data_i    (ccache_cell_rd_data[ip_idx]),
+            .bwd_cell_rd_vld    (cf_cell_rd_en[ip_idx]),
+            .bwd_cell_rd_rdy    (cf_cell_rd_rdy[ip_idx]),
             .cell_fetch_start_i (cc_cell_fetch_start[ip_idx]),
             .fwd_cell_ready_i   (cell_ready_i[ip_idx]),
-            .bwd_cell_en_o      (cf_cell_rd_en[ip_idx]),
-            .bwd_cell_addr_o    (cf_cell_rd_addr[ip_idx]),
             .fwd_cell_data_o    (cell_data_o[(ip_idx+1)*CELL_WIDTH-1-:CELL_WIDTH]),
             .fwd_cell_valid_o   (cell_valid_o[ip_idx])
         );
