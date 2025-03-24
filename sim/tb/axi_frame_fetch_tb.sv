@@ -1,7 +1,9 @@
 `timescale 1ns / 1ps
 
+`define DEBUG
 `define LOG_PATH "E:/dai_hoc/CE_project/AXI4-Frame-Fetch/sim/tb/myLog.txt"
 
+`define FRAME_NUM 2
 module axi_frame_fetch_tb;
     // Features configuration
     // Image Processor
@@ -147,29 +149,44 @@ module axi_frame_fetch_tb;
     initial begin
         forever #1 s_aclk <= ~s_aclk;
     end
-    
+    string str;
     initial begin // driver
         #20;
-        s_tvalid_i <= 1'b0;
-        counter = -1;
-        for(int i = 0; i < 2400; i = i + 1) begin
-            myAXI = new;
-            myAXI.randomize();
-            axis_transfer(.s_tdest(1'b0), .s_tdata(myAXI.data), .s_tlast(1'b0));
-            // Wait for Handshake occuring
-            wait(s_tready_o == 1'b1); #0.1;
-            counter = counter + 1;
-            axi_queue.push_back(myAXI);
+        for(int j = 0; j < `FRAME_NUM; j = j + 1) begin
+$sformat(str,"-----START %0d FRAME-------\n", j);
+$fwrite(fd, str);
+            s_tvalid_i <= 1'b0;
+            counter = -1;
+            for(int i = 0; i < 2400; i = i + 1) begin
+                myAXI = new;
+                myAXI.randomize();
+                axis_transfer(.s_tdest(1'b0), .s_tdata(myAXI.data), .s_tlast(1'b0));
+                // Wait for Handshake occuring
+                wait(s_tready_o == 1'b1); #0.1;
+                counter = counter + 1;
+                axi_queue.push_back(myAXI);
+            end
+            cl;
+            s_tvalid_i <= 1'b0;
+            #2299ns;
+$sformat(str,"-----END %d FRAME-------\n", j);
+$fwrite(fd, str);
         end
-        cl;
-        s_tvalid_i <= 1'b0;
-        
     end
 
     initial begin // monitor
         forever begin
+`ifdef DEBUG            
+$sformat(str,"%t: in monitor\n", $time);
+$fwrite(fd, str);
+`endif
             cl;
-            wait(cell_valid_o[0]);
+            #1;
+            wait((cell_ready_i[0] && cell_valid_o[0]));
+`ifdef DEBUG            
+$sformat(str,"%t: in monitor: %h\n", $time, cell_data_o);
+$fwrite(fd, str);
+`endif
             myCell = new;
             myCell.data = cell_data_o;
             cell_queue.push_back(myCell);
@@ -183,7 +200,7 @@ module axi_frame_fetch_tb;
     bit cp_flag = 0;
     image gm = new();
     bit [7:0] gm_data;
-    string str;
+    
     initial begin // scoreboard
         
         fork
@@ -215,7 +232,7 @@ $fwrite(fd, str);
                     for(int cell_cnt = 0; cell_cnt < 1200; cell_cnt++) begin
                         wait(cell_queue.size);
 
-$sformat(str,"%t: CELL[%0d]: %h\n", $time, cell_cnt, cell_queue[0].data);
+$sformat(str,"%t: in scoreboard CELL[%0d]: %h\n", $time, cell_cnt, cell_queue[0].data);
 $fwrite(fd, str);
 
                         for(int j = 0; j < 10*10 - 4; j++) begin
