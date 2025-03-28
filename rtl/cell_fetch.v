@@ -64,9 +64,7 @@ module cell_fetch
 //        .bwd_ready_o(cs_bwd_ready),
 //        .fwd_valid_o(fwd_cell_valid_o)
 //    );
-    cell_mask #(
-    
-    ) cell_mask (
+    cell_mask cell_mask (
         .cell_i     (bwd_cell_data_i),
         .t_msk_en_i (~|(cell_row_counter)),
         .b_msk_en_i (~|(cell_row_counter^(FRAME_ROW_CNUM-1))),
