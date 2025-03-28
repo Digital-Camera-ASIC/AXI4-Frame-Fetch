@@ -66,20 +66,20 @@ module cell_buffer
     assign cell_data_o = {ipxl_flat[ccell_addr_i], t_opxl_flat[ccell_addr_i], l_opxl_flat[ccell_addr_i], r_opxl_flat[ccell_addr_i], b_opxl_flat[ccell_addr_i]};
     // -- Flattern
     generate
-    for(cell_idx = 0; cell_idx < FRAME_COL_CNUM; cell_idx = cell_idx + 1) begin
+    for(cell_idx = 0; cell_idx < FRAME_COL_CNUM; cell_idx = cell_idx + 1) begin : CELL_IDX_GEN
         // -- -- Internal pixel 
-        for(crow_idx = 0; crow_idx < CELL_ROW_PNUM; crow_idx = crow_idx + 1) begin
-            for(ccol_idx = 0; ccol_idx < CELL_COL_PNUM; ccol_idx = ccol_idx + 1) begin
+        for(crow_idx = 0; crow_idx < CELL_ROW_PNUM; crow_idx = crow_idx + 1) begin : ROW_IDX_GEN
+            for(ccol_idx = 0; ccol_idx < CELL_COL_PNUM; ccol_idx = ccol_idx + 1) begin : COL_IDX_GEN
                 assign ipxl_flat[cell_idx][crow_idx*(CELL_COL_PNUM*PIXEL_WIDTH) + (ccol_idx+1)*PIXEL_WIDTH-1-:PIXEL_WIDTH] = ipxl[cell_idx][crow_idx][ccol_idx];
             end
         end
         // -- -- Vertical pixel
-        for(crow_idx = 0; crow_idx < CELL_ROW_PNUM; crow_idx = crow_idx + 1) begin
+        for(crow_idx = 0; crow_idx < CELL_ROW_PNUM; crow_idx = crow_idx + 1) begin : VER_PIXEL_GEN
             assign l_opxl_flat[cell_idx][(crow_idx+1)*PIXEL_WIDTH-1-:PIXEL_WIDTH] = l_opxl[cell_idx][crow_idx];
             assign r_opxl_flat[cell_idx][(crow_idx+1)*PIXEL_WIDTH-1-:PIXEL_WIDTH] = r_opxl[cell_idx][crow_idx];
         end
         // -- -- Horizontal pixel
-        for(ccol_idx = 0; ccol_idx < CELL_COL_PNUM; ccol_idx = ccol_idx + 1) begin
+        for(ccol_idx = 0; ccol_idx < CELL_COL_PNUM; ccol_idx = ccol_idx + 1) begin : HOR_PIXEL_GEN
             assign t_opxl_flat[cell_idx][(ccol_idx+1)*PIXEL_WIDTH-1-:PIXEL_WIDTH] = t_opxl[cell_idx][ccol_idx];
             assign b_opxl_flat[cell_idx][(ccol_idx+1)*PIXEL_WIDTH-1-:PIXEL_WIDTH] = b_opxl[cell_idx][ccol_idx];
         end
@@ -87,8 +87,8 @@ module cell_buffer
     endgenerate
     // -- Outer-left pixel 
     generate
-    for(cell_idx = 0; cell_idx < FRAME_COL_CNUM; cell_idx = cell_idx + 1) begin
-        for(crow_idx = 0; crow_idx < CELL_ROW_PNUM; crow_idx = crow_idx + 1) begin
+    for(cell_idx = 0; cell_idx < FRAME_COL_CNUM; cell_idx = cell_idx + 1) begin : CELL_OUTER_LEFT_IDX_GEN
+        for(crow_idx = 0; crow_idx < CELL_ROW_PNUM; crow_idx = crow_idx + 1) begin : ROW_OUTER_LEFT_IDX_GEN
             if(crow_idx != 0) begin // Cell row != 0
                 if(cell_idx % 4 == 0) begin
                     always @(*) begin
@@ -216,8 +216,8 @@ module cell_buffer
     endgenerate 
     // -- Outer-right pixel
     generate
-    for(cell_idx = 0; cell_idx < FRAME_COL_CNUM; cell_idx = cell_idx + 1) begin
-        for(crow_idx = 0; crow_idx < CELL_ROW_PNUM; crow_idx = crow_idx + 1) begin
+    for(cell_idx = 0; cell_idx < FRAME_COL_CNUM; cell_idx = cell_idx + 1) begin : CELL_OUTER_RIGHT_IDX_GEN
+        for(crow_idx = 0; crow_idx < CELL_ROW_PNUM; crow_idx = crow_idx + 1) begin: ROW_OUTER_RIGHT_IDX_GEN
             if(crow_idx != 0) begin
                 if(cell_idx % 4 == 0) begin
                     always @(*) begin
@@ -357,8 +357,8 @@ module cell_buffer
     endgenerate
     // -- Outer-bottom pixel 
     generate
-    for(cell_idx = 0; cell_idx < FRAME_COL_CNUM; cell_idx = cell_idx + 1) begin
-        for(ccol_idx = 0; ccol_idx < CELL_COL_PNUM; ccol_idx = ccol_idx + 1) begin
+    for(cell_idx = 0; cell_idx < FRAME_COL_CNUM; cell_idx = cell_idx + 1) begin : CELL_OUTER_BOTTOM_IDX_GEN
+        for(ccol_idx = 0; ccol_idx < CELL_COL_PNUM; ccol_idx = ccol_idx + 1) begin : COL_OUTER_BOTTOM_IDX_GEN
             always @(*) begin
                 b_opxl_d[cell_idx][ccol_idx] = b_opxl[cell_idx][ccol_idx];
                 if((cell_idx>>2) == (bcol_addr_i>>1)) begin
@@ -372,8 +372,8 @@ module cell_buffer
     endgenerate
     // -- Outer-top pixel 
     generate
-    for(cell_idx = 0; cell_idx < FRAME_COL_CNUM; cell_idx = cell_idx + 1) begin
-        for(ccol_idx = 0; ccol_idx < CELL_COL_PNUM; ccol_idx = ccol_idx + 1) begin
+    for(cell_idx = 0; cell_idx < FRAME_COL_CNUM; cell_idx = cell_idx + 1) begin : CELL_OUTER_TOP_IDX_GEN
+        for(ccol_idx = 0; ccol_idx < CELL_COL_PNUM; ccol_idx = ccol_idx + 1) begin : COL_OUTER_TOP_IDX_GEN
             always @(*) begin
                 t_opxl_d[cell_idx][ccol_idx] = t_opxl[cell_idx][ccol_idx];
                 if(cell_store_i) begin
@@ -387,9 +387,9 @@ module cell_buffer
     endgenerate
     // -- Inter-pixel
     generate
-    for(cell_idx = 0; cell_idx < FRAME_COL_CNUM; cell_idx = cell_idx + 1) begin
-        for(crow_idx = 0; crow_idx < CELL_ROW_PNUM; crow_idx = crow_idx + 1) begin
-            for(ccol_idx = 0; ccol_idx < CELL_COL_PNUM; ccol_idx = ccol_idx + 1) begin
+    for(cell_idx = 0; cell_idx < FRAME_COL_CNUM; cell_idx = cell_idx + 1) begin : CELL_INTER_IDX_GEN
+        for(crow_idx = 0; crow_idx < CELL_ROW_PNUM; crow_idx = crow_idx + 1) begin : ROW_INTER_IDX_GEN
+            for(ccol_idx = 0; ccol_idx < CELL_COL_PNUM; ccol_idx = ccol_idx + 1) begin : COL_INTER_IDX_GEN
                 if(crow_idx == 0) begin
                     always @(*) begin
                         ipxl_d[cell_idx][crow_idx][ccol_idx] = ipxl[cell_idx][crow_idx][ccol_idx];
@@ -428,8 +428,8 @@ module cell_buffer
     // Flip-flop logic
     // -- Vertical pixel
     generate
-    for(cell_idx = 0; cell_idx < FRAME_COL_CNUM; cell_idx = cell_idx + 1) begin
-        for(crow_idx = 0; crow_idx < CELL_ROW_PNUM; crow_idx = crow_idx + 1) begin
+    for(cell_idx = 0; cell_idx < FRAME_COL_CNUM; cell_idx = cell_idx + 1) begin : VER_PIXEL_IDX_GEN
+        for(crow_idx = 0; crow_idx < CELL_ROW_PNUM; crow_idx = crow_idx + 1) begin : ROW_VER_IDX_GEN
             always @(posedge clk) begin
                 l_opxl[cell_idx][crow_idx] <= l_opxl_d[cell_idx][crow_idx];
                 r_opxl[cell_idx][crow_idx] <= r_opxl_d[cell_idx][crow_idx];
@@ -439,8 +439,8 @@ module cell_buffer
     endgenerate
     // -- Horizontal pixel
     generate
-    for(cell_idx = 0; cell_idx < FRAME_COL_CNUM; cell_idx = cell_idx + 1) begin
-        for(ccol_idx = 0; ccol_idx < CELL_COL_PNUM; ccol_idx = ccol_idx + 1) begin
+    for(cell_idx = 0; cell_idx < FRAME_COL_CNUM; cell_idx = cell_idx + 1) begin : HOR_PIXEL_IDX_GEN
+        for(ccol_idx = 0; ccol_idx < CELL_COL_PNUM; ccol_idx = ccol_idx + 1) begin : COL_HOR_IDX_GEN
             always @(posedge clk) begin
                 t_opxl[cell_idx][ccol_idx] <= t_opxl_d[cell_idx][ccol_idx];
                 b_opxl[cell_idx][ccol_idx] <= b_opxl_d[cell_idx][ccol_idx];
@@ -450,9 +450,9 @@ module cell_buffer
     endgenerate
     // -- Internal pixel
     generate
-    for(cell_idx = 0; cell_idx < FRAME_COL_CNUM; cell_idx = cell_idx + 1) begin
-        for(crow_idx = 0; crow_idx < CELL_ROW_PNUM; crow_idx = crow_idx + 1) begin
-            for(ccol_idx = 0; ccol_idx < CELL_COL_PNUM; ccol_idx = ccol_idx + 1) begin
+    for(cell_idx = 0; cell_idx < FRAME_COL_CNUM; cell_idx = cell_idx + 1) begin : CELL_IDX_INTERNAL_GEN
+        for(crow_idx = 0; crow_idx < CELL_ROW_PNUM; crow_idx = crow_idx + 1) begin : ROW_IDX_INTERNAL_GEN
+            for(ccol_idx = 0; ccol_idx < CELL_COL_PNUM; ccol_idx = ccol_idx + 1) begin : COL_IDX_INTERNAL_GEN
                 always @(posedge clk) begin
                     ipxl[cell_idx][crow_idx][ccol_idx] <= ipxl_d[cell_idx][crow_idx][ccol_idx];
                 end
