@@ -98,11 +98,9 @@ module axi_frame_fetch
         .pgroup_ready_i (actrl_pgroup_ready)
     );
     generate
-        for(ip_idx = 0; ip_idx < IP_AMT; ip_idx = ip_idx + 1) begin
+        for(ip_idx = 0; ip_idx < IP_AMT; ip_idx = ip_idx + 1) begin : CONTROLLER_GEN
         // -- Cell controller
-        cell_controller #(
-                    
-        ) cell_controller (
+        cell_controller cell_controller (
             .clk                (s_aclk),            
             .rst                (~s_aresetn),            
             .pgroup_valid_i     (actrl_pgroup_valid[ip_idx]), 
@@ -118,9 +116,7 @@ module axi_frame_fetch
             .cell_fetch_start_o (cc_cell_fetch_start[ip_idx])
         );
         // -- Cell buffer
-        cell_buffer #(
-        
-        ) cell_buffer (
+        cell_buffer cell_buffer (
             .clk                (s_aclk),
             .rst                (~s_aresetn),
             .pgroup_i           (actrl_pgroup_data),
@@ -152,9 +148,7 @@ module axi_frame_fetch
 
 
         // -- Cell fetch
-        cell_fetch #(
-        
-        ) cell_fetch (
+        cell_fetch cell_fetch (
             .clk                (s_aclk),
             .rst                (~s_aresetn),
             .bwd_cell_addr_o    (cf_cell_rd_addr[ip_idx]),
