@@ -84,7 +84,7 @@ module axi_controller
     end
     else begin
         assign s_tready                 = pgroup_ready_i[ip_addr];
-        for(ip_idx = 0; ip_idx < IP_AMT; ip_idx = ip_idx + 1) begin
+        for(ip_idx = 0; ip_idx < IP_AMT; ip_idx = ip_idx + 1) begin : IP_VALID_GEN
            assign pgroup_valid_o[ip_idx]= (ip_addr == ip_idx) & pixel_valid_en;
         end
     end
